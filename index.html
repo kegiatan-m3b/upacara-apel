@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Presensi Upacara/Apel MTsN 3 Banyuwangi</title>
+    <title>Presensi Upacara MTsN 3 Banyuwangi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -301,7 +301,23 @@
         </nav>
     </div>
 
-    <!-- MODALS -->
+    <!-- MODAL FOTO (POP-UP) -->
+    <div id="photoModal" class="fixed inset-0 z-[900] bg-black/90 backdrop-blur-sm hidden flex-col items-center justify-center p-4">
+        <div class="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl p-2">
+            <button onclick="closePhotoModal()" class="absolute top-4 right-4 w-10 h-10 bg-black/60 text-white rounded-full flex items-center justify-center z-20 active:scale-95 transition-all">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="bg-gray-100 rounded-2xl flex justify-center items-center min-h-[300px] relative overflow-hidden">
+                <div id="photoLoading" class="absolute inset-0 flex flex-col items-center justify-center text-emerald-500">
+                    <i class="fas fa-circle-notch fa-spin text-4xl mb-2"></i>
+                    <span class="text-xs font-bold text-gray-500">Memuat Foto...</span>
+                </div>
+                <img id="previewImage" class="w-full max-h-[75vh] object-contain relative z-10 opacity-0 transition-opacity duration-300" alt="Bukti Foto">
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS LAINNYA -->
     <div id="userModal" class="fixed inset-0 z-[700] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-4 shadow-2xl">
             <h3 id="modalTitle" class="text-xl font-black text-gray-900">Data Pegawai</h3>
@@ -380,7 +396,7 @@
         var DEFAULT_LAT = -8.403045956089906;
         var DEFAULT_LNG = 114.262155147061;
         var user = null;
-        var office = { rad: 100, gpsReq: 'ON', jadwal: '' }; // Lokasi sudah menggunakan DEFAULT secara permanen
+        var office = { rad: 100, gpsReq: 'ON', jadwal: '' }; 
         var currentLoc = { lat: 0, lng: 0 };
         var attType = '';
         var gpsWatchId = null;
@@ -404,6 +420,57 @@
                 if (saved) { user = JSON.parse(saved); setupApp(); }
             } catch(err) {}
         };
+
+        // ==========================================
+        // FUNGSI MENAMPILKAN FOTO DI POPUP
+        // ==========================================
+        function getPhotoUrls(driveUrl) {
+            // Ekstrak ID dari URL Drive Standar
+            var match = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || driveUrl.match(/id=([a-zA-Z0-9_-]+)/);
+            if (!match) return { primary: driveUrl, fallback: driveUrl };
+            var id = match[1];
+            return {
+                primary: "https://lh3.googleusercontent.com/d/" + id,
+                fallback: "https://drive.google.com/thumbnail?id=" + id + "&sz=w1000"
+            };
+        }
+
+        function openPhotoModal(driveUrl) {
+            if (!driveUrl) return showToast("Tidak ada tautan foto!");
+            
+            var urls = getPhotoUrls(driveUrl);
+            var modal = document.getElementById('photoModal');
+            var img = document.getElementById('previewImage');
+            var loader = document.getElementById('photoLoading');
+
+            modal.classList.replace('hidden', 'flex');
+            img.style.opacity = '0';
+            loader.style.display = 'flex';
+            loader.innerHTML = '<i class="fas fa-circle-notch fa-spin text-4xl mb-2"></i><span class="text-xs font-bold text-gray-500">Memuat Foto...</span>';
+
+            img.onload = function() {
+                img.style.opacity = '1';
+                loader.style.display = 'none';
+            };
+
+            img.onerror = function() {
+                // Jika lh3.googleusercontent.com gagal (misal file belum terindeks penuh), gunakan Fallback Thumbnail API
+                if (img.src !== urls.fallback) {
+                    console.log("Mencoba link fallback...");
+                    img.src = urls.fallback;
+                } else {
+                    loader.innerHTML = '<span class="text-red-500 font-bold text-xs"><i class="fas fa-exclamation-triangle text-2xl mb-1"></i><br>Gagal memuat gambar</span>';
+                }
+            };
+
+            // Panggil server gambar internal google
+            img.src = urls.primary;
+        }
+
+        function closePhotoModal() {
+            document.getElementById('photoModal').classList.replace('flex', 'hidden');
+            document.getElementById('previewImage').src = '';
+        }
 
         function loadGtkNames() {
             var sel = document.getElementById('loginName');
@@ -840,7 +907,11 @@
                             var h = res.history[i];
                             var stsText = h[9] || 'Hadir';
                             var bColor = stsText === 'Hadir' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600';
-                            var linkFoto = h[10] ? '<a href="'+h[10]+'" target="_blank" class="bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md text-[9px] font-black"><i class="fas fa-image"></i> Cek</a>' : '';
+                            
+                            // -------------------------------------------------------------
+                            // Perubahan Link ke Modal (GTK History)
+                            // -------------------------------------------------------------
+                            var linkFoto = h[10] ? '<button onclick="openPhotoModal(\'' + h[10] + '\')" class="bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md text-[9px] font-black active:scale-95 transition-all"><i class="fas fa-image"></i> Cek</button>' : '';
                             
                             hHtml += '<div class="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">' +
                                      '<div><p class="text-[10px] font-black text-emerald-600">' + h[2] + '</p>' +
@@ -874,7 +945,11 @@
                                     var badgeColor = isHadirNormal ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
                                     var badgeText = isHadirNormal ? 'Hadir' : gtk.status;
                                     var stsBadge = '<br><span class="px-2 py-0.5 rounded text-[8px] font-black uppercase inline-block mt-1 ' + badgeColor + '">' + badgeText + '</span>';
-                                    var linkFoto = gtk.foto ? '<a href="'+gtk.foto+'" target="_blank" class="text-blue-500 underline font-bold text-[10px]"><i class="fas fa-image"></i> Cek</a>' : '<span class="text-gray-300">-</span>';
+                                    
+                                    // -------------------------------------------------------------
+                                    // Perubahan Link ke Modal (Admin Monitoring)
+                                    // -------------------------------------------------------------
+                                    var linkFoto = gtk.foto ? '<button onclick="openPhotoModal(\'' + gtk.foto + '\')" class="text-blue-500 underline font-bold text-[10px]"><i class="fas fa-image"></i> Cek</button>' : '<span class="text-gray-300">-</span>';
                                     
                                     hHtml += '<tr class="bg-white border-b border-gray-100"><td class="py-3 px-3 font-bold text-gray-900">' + gtk.nama + stsBadge + '</td><td class="py-3 px-3 text-center">' + linkFoto + '</td></tr>';
                                 } else {
@@ -938,7 +1013,12 @@
                     var a = data[i];
                     var stsText = a[9] || 'Hadir';
                     var stsColor = stsText === 'Hadir' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600';
-                    var link = a[10] ? '<a href="'+a[10]+'" target="_blank" class="text-blue-500 underline text-[10px] font-bold">Foto</a>' : '-';
+                    
+                    // -------------------------------------------------------------
+                    // Perubahan Link ke Modal (Log Admin)
+                    // -------------------------------------------------------------
+                    var link = a[10] ? '<button onclick="openPhotoModal(\'' + a[10] + '\')" class="text-blue-500 underline text-[10px] font-bold">Foto</button>' : '-';
+                    
                     aHtml += '<tr class="'+(i % 2 === 0 ? 'bg-white' : 'bg-gray-50')+' border-b border-gray-100"><td class="py-3 px-3 font-bold text-gray-900">' + a[a.length - 1] + '</td><td class="py-3 px-3 font-bold text-gray-600">' + a[2] + '</td><td class="py-3 px-3 font-bold text-emerald-600">' + a[3] + '</td><td class="py-3 px-3 text-center"><span class="px-2 py-1 rounded-lg text-[9px] font-black uppercase '+stsColor+'">' + stsText + '</span></td><td class="py-3 px-3 text-center">' + link + '</td></tr>';
                 }
                 document.getElementById('adminAbsenceLog').innerHTML = aHtml;
