@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Presensi Upacara MTsN 3 Banyuwangi</title>
+    <title>Presensi Upacara / Apel MTsN 3 Banyuwangi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -32,7 +32,7 @@
                 <div class="w-20 h-20 bg-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl text-white text-3xl">
                     <i class="fas fa-flag"></i>
                 </div>
-                <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight leading-tight">Presensi Upacara<br><span class="text-emerald-600 text-lg">MTsN 3 Banyuwangi</span></h1>
+                <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight leading-tight">Presensi Upacara / Apel<br><span class="text-emerald-600 text-lg">MTsN 3 Banyuwangi</span></h1>
             </div>
             
             <div class="space-y-4 w-full">
@@ -104,12 +104,12 @@
                     <h1 id="curTime" class="text-5xl font-black mb-4 tabular-nums">00:00</h1>
                     
                     <div class="bg-white/10 rounded-xl p-2 mb-6 font-bold text-xs">
-                        Jadwal Upacara: <span id="labelJadwalGTK" class="text-amber-300">Memuat...</span>
+                        Jadwal Upacara / Apel: <span id="labelJadwalGTK" class="text-amber-300">Memuat...</span>
                     </div>
                     
                     <div class="grid grid-cols-1 gap-3 relative z-10">
                         <button id="btnAbsenMasuk" onclick="startAttendance('IN')" class="bg-white text-emerald-600 font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-                            <i class="fas fa-camera"></i> PRESENSI UPACARA
+                            <i class="fas fa-camera"></i> PRESENSI Upacara / Apel
                         </button>
                         <button id="btnIzin" onclick="openPermitModal()" class="bg-amber-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 border border-white/20 active:scale-95 transition-all shadow-lg">
                             <i class="fas fa-file-medical"></i> IZIN / SAKIT
@@ -129,7 +129,7 @@
                     <div class="flex items-center gap-3 mb-6">
                         <div class="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex justify-center items-center text-xl shadow-inner"><i class="fas fa-clipboard-user"></i></div>
                         <div>
-                            <h2 class="text-xl font-black text-gray-900 leading-none mb-1">Monitoring Upacara</h2>
+                            <h2 class="text-xl font-black text-gray-900 leading-none mb-1">Monitoring Upacara / Apel</h2>
                             <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Jadwal: <span id="mon-hari" class="text-emerald-600 font-black">...</span></p>
                         </div>
                     </div>
@@ -322,6 +322,7 @@
                     <option value="Izin">Izin</option>
                     <option value="Sakit">Sakit</option>
                     <option value="Cuti Tahunan">Cuti Tahunan</option>
+                    <option value="Cuti Sakit">Cuti Sakit</option>
                     <option value="Cuti Melahirkan">Cuti Melahirkan</option>
                     <option value="Dinas Luar">Dinas Luar</option>
                 </select>
@@ -377,7 +378,7 @@
 
     <div id="permitModal" class="fixed inset-0 z-[700] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-4 shadow-2xl">
-            <h3 class="text-xl font-black text-gray-900">Pengajuan Izin Upacara</h3>
+            <h3 class="text-xl font-black text-gray-900">Pengajuan Izin UPACARA / APEL</h3>
             <select id="pType" class="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 font-bold text-gray-700">
                 <option value="Sakit">Sakit</option>
                 <option value="Izin Keperluan">Izin Keperluan</option>
@@ -937,17 +938,17 @@
                         } else if (!isTodayUpacara) {
                             btnMasuk.disabled = true; btnMasuk.onclick = null;
                             btnMasuk.classList.replace('text-emerald-600', 'text-gray-400');
-                            btnMasuk.innerHTML = '<i class="fas fa-ban"></i> BUKAN JADWAL UPACARA';
+                            btnMasuk.innerHTML = '<i class="fas fa-ban"></i> BUKAN JADWAL UPACARA / APEL';
                             
                             if(btnIzin) { 
                                 btnIzin.disabled = true; btnIzin.onclick = null; 
                                 btnIzin.classList.replace('bg-amber-500', 'bg-gray-300'); 
-                                btnIzin.innerHTML = '<i class="fas fa-ban"></i> BUKAN JADWAL UPACARA'; 
+                                btnIzin.innerHTML = '<i class="fas fa-ban"></i> BUKAN JADWAL UPACARA / APEL'; 
                             }
                         } else {
                             btnMasuk.disabled = false; btnMasuk.onclick = function() { startAttendance('IN'); };
                             btnMasuk.classList.replace('text-gray-400', 'text-emerald-600');
-                            btnMasuk.innerHTML = '<i class="fas fa-camera"></i> PRESENSI UPACARA';
+                            btnMasuk.innerHTML = '<i class="fas fa-camera"></i> PRESENSI UPACARA / APEL';
                             
                             if(btnIzin) { 
                                 btnIzin.disabled = false; btnIzin.onclick = function() { openPermitModal(); }; 
@@ -1141,12 +1142,12 @@
                             ctx.fillStyle = "white"; ctx.font = "bold 15px Arial"; ctx.shadowColor = "rgba(0,0,0,0.8)"; ctx.shadowBlur = 4;
                             var now = new Date(); var days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
                             
-                            ctx.fillText("⭐ Presensi Upacara MTsN 3 BWI", 15, can.height - 65);
+                            ctx.fillText("⭐ Presensi UPACARA / APEL MTsN 3 BWI", 15, can.height - 65);
                             ctx.fillText("🕒 " + days[now.getDay()] + ", " + now.toLocaleDateString('id-ID') + " - " + now.toLocaleTimeString('id-ID'), 15, can.height - 40);
                             ctx.fillText(alamatFinal, 15, can.height - 15);
                             
                             var dataUrl = can.toDataURL('image/jpeg', 0.80);
-                            showToast("📤 Mengirim presensi upacara...");
+                            showToast("📤 Mengirim presensi upacara/apel...");
                             
                             callGAS('submitAttendance', { type: attType, lat: currentLoc.lat, lng: currentLoc.lng, userId: user.id, selfieData: dataUrl }, function(res) {
                                 showToast(res.message); if (res.success) refreshData();
