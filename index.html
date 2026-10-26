@@ -473,41 +473,60 @@
             };
         }
 
-        function openPhotoModal(driveUrl) {
-            if (!driveUrl) return showToast("Tidak ada tautan foto!");
+        function openPhotoModal(dataUrl) {
+            if (!dataUrl) return showToast("Tidak ada tautan foto/keterangan!");
             
-            var urls = getPhotoUrls(driveUrl);
             var modal = document.getElementById('photoModal');
             var img = document.getElementById('previewImage');
             var loader = document.getElementById('photoLoading');
+            
+            // Buat container teks jika belum ada
+            var textContainer = document.getElementById('photoTextContainer');
+            if (!textContainer) {
+                textContainer = document.createElement('div');
+                textContainer.id = 'photoTextContainer';
+                textContainer.className = 'w-full p-8 text-center flex flex-col justify-center items-center h-full relative z-10';
+                img.parentNode.appendChild(textContainer);
+            }
 
             modal.classList.replace('hidden', 'flex');
-            img.style.opacity = '0';
-            loader.style.display = 'flex';
-            loader.innerHTML = '<i class="fas fa-circle-notch fa-spin text-4xl mb-2"></i><span class="text-xs font-bold text-gray-500">Memuat Foto...</span>';
 
-            img.onload = function() {
-                img.style.opacity = '1';
+            // Jika isinya TEKS MANUAL (bukan URL http)
+            if (String(dataUrl).indexOf('http') === -1) {
+                img.style.display = 'none';
                 loader.style.display = 'none';
-            };
-
-            img.onerror = function() {
-                // Jika lh3.googleusercontent.com gagal (misal file belum terindeks penuh), gunakan Fallback Thumbnail API
-                if (img.src !== urls.fallback) {
-                    console.log("Mencoba link fallback...");
-                    img.src = urls.fallback;
-                } else {
-                    loader.innerHTML = '<span class="text-red-500 font-bold text-xs"><i class="fas fa-exclamation-triangle text-2xl mb-1"></i><br>Gagal memuat gambar</span>';
-                }
-            };
-
-            // Panggil server gambar internal google
-            img.src = urls.primary;
+                textContainer.style.display = 'flex';
+                textContainer.innerHTML = '<i class="fas fa-clipboard-check text-5xl text-emerald-500 mb-4"></i><h4 class="text-lg font-black text-gray-800 mb-2">Presensi Manual</h4><p class="text-sm font-bold text-gray-600">' + dataUrl + '</p>';
+            } 
+            // Jika isinya GAMBAR/URL DRIVE
+            else {
+                textContainer.style.display = 'none';
+                img.style.display = 'block';
+                img.style.opacity = '0';
+                loader.style.display = 'flex';
+                loader.innerHTML = '<i class="fas fa-circle-notch fa-spin text-4xl mb-2"></i><span class="text-xs font-bold text-gray-500">Memuat Foto...</span>';
+                
+                var urls = getPhotoUrls(dataUrl);
+                img.onload = function() {
+                    img.style.opacity = '1';
+                    loader.style.display = 'none';
+                };
+                img.onerror = function() {
+                    if (img.src !== urls.fallback) {
+                        img.src = urls.fallback;
+                    } else {
+                        loader.innerHTML = '<span class="text-red-500 font-bold text-xs"><i class="fas fa-exclamation-triangle text-2xl mb-1"></i><br>Gagal memuat gambar</span>';
+                    }
+                };
+                img.src = urls.primary;
+            }
         }
 
         function closePhotoModal() {
             document.getElementById('photoModal').classList.replace('flex', 'hidden');
             document.getElementById('previewImage').src = '';
+            var textContainer = document.getElementById('photoTextContainer');
+            if (textContainer) textContainer.style.display = 'none';
         }
 
         function loadGtkNames() {
