@@ -157,7 +157,10 @@
                     </div>
 
                     <div>
-                        <h4 class="text-xs font-bold text-red-500 mb-2 flex items-center gap-1"><i class="fas fa-times-circle"></i> Belum Mengisi Kehadiran</h4>
+                        <div class="flex justify-between items-center mb-2">
+    <h4 class="text-xs font-bold text-red-500 flex items-center gap-1"><i class="fas fa-times-circle"></i> Belum Mengisi Kehadiran</h4>
+    <button id="btnMenuAbsenManual" onclick="openManualAbsenModal()" class="hidden bg-red-50 text-red-600 px-3 py-1.5 rounded-xl text-[10px] font-black active:scale-95 transition-all border border-red-100 shadow-sm"><i class="fas fa-user-edit"></i> Absen Manual</button>
+</div>
                         <div class="overflow-x-auto border border-gray-100 rounded-2xl">
                             <table class="w-full text-xs">
                                 <thead>
@@ -304,11 +307,14 @@
     <!-- MODAL ABSEN MANUAL ADMIN -->
     <div id="manualAbsenModal" class="fixed inset-0 z-[800] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-4 shadow-2xl">
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="text-xl font-black text-gray-900">Absensi Manual</h3>
+            <h3 class="text-xl font-black text-gray-900 mb-2">Form Absen Manual</h3>
+
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1 block">Pilih Pegawai (Belum Absen)</label>
+                <select id="maPilihGtk" class="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 font-bold text-gray-700">
+                    <option value="">-- Pilih Pegawai --</option>
+                </select>
             </div>
-            <p class="text-sm font-bold text-gray-600 mb-2">GTK: <span id="maNamaGtk" class="text-emerald-600 font-black"></span></p>
-            <input type="hidden" id="maIdGtk">
 
             <div>
                 <label class="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1 block">Pilih Status</label>
@@ -323,12 +329,12 @@
 
             <div>
                 <label class="text-[10px] font-bold text-gray-400 uppercase ml-2 mb-1 block">Keterangan (Opsional)</label>
-                <textarea id="maKeterangan" placeholder="Ketik keterangan di sini..." rows="2" class="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 text-sm"></textarea>
+                <textarea id="maKeterangan" placeholder="Ketik keterangan..." rows="2" class="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 text-sm"></textarea>
             </div>
 
             <div class="flex gap-3 pt-4">
                 <button onclick="closeManualAbsenModal()" class="flex-1 py-4 font-bold text-gray-400 active:scale-95 transition-all">Batal</button>
-                <button onclick="submitManualAbsen()" id="btnSubmitMa" class="flex-1 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-all">Simpan</button>
+                <button onclick="submitManualAbsen()" id="btnSubmitMa" class="flex-1 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-all">Kirim</button>
             </div>
         </div>
     </div>
@@ -969,6 +975,7 @@
                              listBelum.innerHTML = '<tr><td colspan="2" class="py-4 text-center text-gray-500 font-bold">Hari ini tidak ada jadwal Upacara/Apel.</td></tr>';
                         } else {
                             var hHtml = "", bHtml = "";
+                            var optManualHtml = '<option value="">-- Pilih Pegawai --</option>'; // Menyiapkan dropdown
                             
                             for(var m=0; m<res.monitoring.list.length; m++){
                                 var gtk = res.monitoring.list[m];
@@ -977,28 +984,34 @@
                                     var badgeColor = isHadirNormal ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
                                     var badgeText = isHadirNormal ? 'Hadir' : gtk.status;
                                     var stsBadge = '<br><span class="px-2 py-0.5 rounded text-[8px] font-black uppercase inline-block mt-1 ' + badgeColor + '">' + badgeText + '</span>';
-                                    
-                                    // -------------------------------------------------------------
-                                    // Perubahan Link ke Modal (Admin Monitoring)
-                                    // -------------------------------------------------------------
                                     var linkFoto = gtk.foto ? '<button onclick="openPhotoModal(\'' + gtk.foto + '\')" class="text-blue-500 underline font-bold text-[10px]"><i class="fas fa-image"></i> Cek</button>' : '<span class="text-gray-300">-</span>';
                                     
                                     hHtml += '<tr class="bg-white border-b border-gray-100"><td class="py-3 px-3 font-bold text-gray-900">' + gtk.nama + stsBadge + '</td><td class="py-3 px-3 text-center">' + linkFoto + '</td></tr>';
                                 } else {
-    var btnManual = '';
-    // Tampilkan tombol manual HANYA jika yang login adalah admin
-    if (user.role === 'admin') {
-        var escapedId = String(gtk.id || '').replace(/'/g, "\\'");
-        var escapedNama = String(gtk.nama).replace(/'/g, "\\'");
-        btnManual = '<br><button onclick="openManualAbsenModal(\'' + escapedId + '\', \'' + escapedNama + '\')" class="mt-2 bg-amber-100 text-amber-700 px-2 py-1.5 rounded-lg text-[9px] font-black active:scale-95 transition-all uppercase"><i class="fas fa-user-edit"></i> Absen Manual</button>';
-    }
-    
-    bHtml += '<tr class="bg-gray-50 border-b border-gray-100"><td class="py-3 px-3 font-bold text-gray-900">' + gtk.nama + btnManual + '</td><td class="py-3 px-3 text-center align-top pt-4"><span class="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-[9px] font-black uppercase">Belum Hadir</span></td></tr>';
-}
+                                    bHtml += '<tr class="bg-gray-50 border-b border-gray-100"><td class="py-3 px-3 font-bold text-gray-900">' + gtk.nama + '</td><td class="py-3 px-3 text-center"><span class="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-[9px] font-black uppercase">Belum Hadir</span></td></tr>';
+                                    
+                                    // Memasukkan nama guru ke dalam option form Dropdown
+                                    var gtkId = gtk.id || "";
+                                    optManualHtml += '<option value="' + gtkId + '|' + gtk.nama + '">' + gtk.nama + '</option>';
+                                }
                             }
                             
                             listHadir.innerHTML = hHtml || '<tr><td colspan="2" class="py-4 text-center text-gray-400 font-bold">Belum ada GTK yang hadir</td></tr>';
                             listBelum.innerHTML = bHtml || '<tr><td colspan="2" class="py-4 text-center text-gray-400 font-bold">Semua GTK sudah hadir!</td></tr>';
+
+                            // Tampilkan tombol dan masukkan data ke dropdown khusus Admin
+                            var btnMenu = document.getElementById('btnMenuAbsenManual');
+                            var selManual = document.getElementById('maPilihGtk');
+                            
+                            if (user.role === 'admin' && btnMenu && selManual) {
+                                btnMenu.classList.remove('hidden');
+                                selManual.innerHTML = optManualHtml;
+                                
+                                // Sembunyikan tombol absen manual jika semua orang sudah absen
+                                if (optManualHtml === '<option value="">-- Pilih Pegawai --</option>') {
+                                    btnMenu.classList.add('hidden');
+                                }
+                            }
                         }
                     }
                 }
@@ -1274,6 +1287,56 @@
                 showToast("Gagal mengirim: " + err);
                 btn.disabled = false;
                 btn.innerHTML = 'Simpan';
+            });
+        }
+
+        // ===============================================
+        // FUNGSI ABSEN MANUAL (KHUSUS ADMIN)
+        // ===============================================
+        function openManualAbsenModal() {
+            document.getElementById('manualAbsenModal').classList.replace('hidden', 'flex');
+        }
+
+        function closeManualAbsenModal() {
+            document.getElementById('manualAbsenModal').classList.replace('flex', 'hidden');
+            document.getElementById('maPilihGtk').value = '';
+            document.getElementById('maKeterangan').value = '';
+            document.getElementById('maStatus').value = 'Izin';
+        }
+
+        function submitManualAbsen() {
+            var btn = document.getElementById('btnSubmitMa');
+            var selValue = document.getElementById('maPilihGtk').value;
+            var status = document.getElementById('maStatus').value;
+            var ket = document.getElementById('maKeterangan').value;
+
+            if (!selValue) return showToast("Harap pilih nama pegawai!");
+
+            var splitVal = selValue.split('|');
+            var id = splitVal[0];
+            var nama = splitVal[1];
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROSES...';
+
+            var payload = {
+                userId: id,
+                namaGtk: nama,
+                status: status,
+                keterangan: ket,
+                adminName: user.nama
+            };
+
+            callGAS('submitManualAttendance', payload, function(res) {
+                showToast(res.message);
+                closeManualAbsenModal();
+                refreshData(); 
+                btn.disabled = false;
+                btn.innerHTML = 'Kirim';
+            }, function(err) {
+                showToast("Gagal mengirim: " + err);
+                btn.disabled = false;
+                btn.innerHTML = 'Kirim';
             });
         }
         
