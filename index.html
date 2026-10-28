@@ -1137,12 +1137,15 @@
                             var ctx = can.getContext('2d');
                             ctx.drawImage(img, 0, 0, can.width, can.height);
                             
-                            ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-                            ctx.fillRect(0, can.height - 90, can.width, 90);
+                           ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+                            // Menambah tinggi kotak hitam dari 90 menjadi 110 agar muat 4 baris teks
+                            ctx.fillRect(0, can.height - 110, can.width, 110); 
                             ctx.fillStyle = "white"; ctx.font = "bold 15px Arial"; ctx.shadowColor = "rgba(0,0,0,0.8)"; ctx.shadowBlur = 4;
                             var now = new Date(); var days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
                             
-                            ctx.fillText("⭐ Presensi UPACARA / APEL MTsN 3 BWI", 15, can.height - 65);
+                            // Menambahkan Nama GTK di baris paling atas
+                            ctx.fillText("👤 " + user.nama, 15, can.height - 85);
+                            ctx.fillText("⭐ Presensi Upacara / Apel MTsN 3 BWI", 15, can.height - 65);
                             ctx.fillText("🕒 " + days[now.getDay()] + ", " + now.toLocaleDateString('id-ID') + " - " + now.toLocaleTimeString('id-ID'), 15, can.height - 40);
                             ctx.fillText(alamatFinal, 15, can.height - 15);
                             
