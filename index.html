@@ -213,6 +213,15 @@
                         </select>
                     </div>
 
+                    <div class="bg-white/10 p-3 rounded-2xl">
+                        <p class="text-[8px] text-gray-400 uppercase font-bold mb-1">Akses Presensi GTK</p>
+                        <select id="adm-target" class="w-full bg-white text-xs outline-none text-gray-900 font-bold p-2 rounded-xl">
+                            <option value="SEMUA">👥 Semua GTK (ASN & Non-ASN)</option>
+                            <option value="ASN">👔 Khusus ASN</option>
+                            <option value="Non-ASN">🧑‍🏫 Khusus Non-ASN</option>
+                        </select>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-2 mt-2">
                         <div class="bg-white/10 p-3 rounded-2xl">
                             <p class="text-[8px] text-gray-400 uppercase font-bold mb-1">Jam Buka</p>
@@ -368,6 +377,12 @@
                 <option value="admin">Admin</option>
                 <option value="pimpinan">Pimpinan</option>
             </select>
+
+            <select id="uStatus" class="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100 font-bold text-gray-600">
+                <option value="ASN">ASN</option>
+                <option value="Non-ASN">Non-ASN</option>
+            </select>
+            
             <input type="text" id="uPass" placeholder="Password Khusus Admin/Pimpinan" class="w-full p-4 bg-gray-50 rounded-2xl outline-none ring-1 ring-gray-100">
             <div class="flex gap-3 pt-4">
                 <button onclick="closeUserModal()" class="flex-1 py-4 font-bold text-gray-400">Batal</button>
@@ -435,7 +450,7 @@
         var DEFAULT_LAT = -8.403045956089906;
         var DEFAULT_LNG = 114.262155147061;
         var user = null;
-        var office = { rad: 100, gpsReq: 'ON', jadwal: '' }; 
+        var office = { rad: 100, gpsReq: 'ON', jadwal: '', targetGtk: 'SEMUA' };
         var currentLoc = { lat: 0, lng: 0 };
         var attType = '';
         var gpsWatchId = null;
@@ -891,8 +906,30 @@
                     office.rad = parseInt(s.radius || office.rad) || 100;
                     office.gpsReq = s.gps_required || 'ON';
                     office.jadwal = s.jadwal_upacara || '';
+                    office.targetGtk = s.target_gtk || 'SEMUA';
                     
                     try { localStorage.setItem('presensi_office_v4', JSON.stringify(office)); } catch(e){}
+                    
+                    var startInput = document.getElementById('adm-start');
+                    var endInput = document.getElementById('adm-end');
+                    var gpsInput = document.getElementById('adm-gps');
+                    var radInput = document.getElementById('adm-rad');
+                    var jadwalInput = document.getElementById('adm-jadwal');
+                    var targetInput = document.getElementById('adm-target');
+                    
+                    if (startInput) startInput.value = s.time_start || '06:00';
+                    if (endInput) endInput.value = s.time_end || '07:30';
+                    if (gpsInput) gpsInput.value = office.gpsReq;
+                    if (radInput) radInput.value = office.rad;
+                    if (jadwalInput) jadwalInput.value = office.jadwal;
+                    if (targetInput) targetInput.value = office.targetGtk;
+                }
+
+                // Sinkronkan status ASN/Non-ASN terbaru dari server agar GTK lama tidak perlu logout
+                if (res.userStatus !== undefined) {
+                    user.status = res.userStatus;
+                    try { localStorage.setItem('presensi_upacara_user', JSON.stringify(user)); } catch(e){}
+                }
                     
                     var startInput = document.getElementById('adm-start');
                     var endInput = document.getElementById('adm-end');
@@ -914,13 +951,19 @@
                     var btnIzin = document.getElementById('btnIzin');
                     var lblJadwal = document.getElementById('labelJadwalGTK');
                     
-                    if (lblJadwal) {
-                        lblJadwal.innerText = office.jadwal ? office.jadwal : "Belum diatur";
+                   if (lblJadwal) {
+                        var infoTarget = (office.targetGtk && office.targetGtk !== 'SEMUA') ? (' (Khusus ' + office.targetGtk + ')') : '';
+                        lblJadwal.innerText = office.jadwal ? (office.jadwal + infoTarget) : "Belum diatur";
                     }
                     
                     if (btnMasuk && res.todayServer) {
                         var historyHariIni = res.history.find(function(h) { return String(h[2]).trim() === String(res.todayServer).trim(); });
                         var isTodayUpacara = (String(res.todayServer).trim() === String(office.jadwal).trim());
+                        
+                        // Cek apakah status ASN/Non-ASN user sesuai dengan pengaturan admin
+                        var userSts = String(user.status || '').trim().toUpperCase();
+                        var targetSts = String(office.targetGtk || 'SEMUA').trim().toUpperCase();
+                        var isAllowedStatus = (targetSts === 'SEMUA' || userSts === targetSts);
                         
                         if (historyHariIni) {
                             var sts = historyHariIni[9] || 'Hadir'; 
@@ -938,17 +981,27 @@
                         } else if (!isTodayUpacara) {
                             btnMasuk.disabled = true; btnMasuk.onclick = null;
                             btnMasuk.classList.replace('text-emerald-600', 'text-gray-400');
-                            btnMasuk.innerHTML = '<i class="fas fa-ban"></i> BUKAN JADWAL UPACARA / APEL';
+                            btnMasuk.innerHTML = '<i class="fas fa-ban"></i> BUKAN JADWAL Upacara / Apel';
                             
                             if(btnIzin) { 
                                 btnIzin.disabled = true; btnIzin.onclick = null; 
                                 btnIzin.classList.replace('bg-amber-500', 'bg-gray-300'); 
-                                btnIzin.innerHTML = '<i class="fas fa-ban"></i> BUKAN JADWAL UPACARA / APEL'; 
+                                btnIzin.innerHTML = '<i class="fas fa-ban"></i> BUKAN JADWAL Upacara / Apel'; 
+                            }
+                        } else if (!isAllowedStatus) {
+                            btnMasuk.disabled = true; btnMasuk.onclick = null;
+                            btnMasuk.classList.replace('text-emerald-600', 'text-gray-400');
+                            btnMasuk.innerHTML = '<i class="fas fa-user-lock"></i> KHUSUS ' + office.targetGtk.toUpperCase();
+                            
+                            if(btnIzin) { 
+                                btnIzin.disabled = true; btnIzin.onclick = null; 
+                                btnIzin.classList.replace('bg-amber-500', 'bg-gray-300'); 
+                                btnIzin.innerHTML = '<i class="fas fa-user-lock"></i> KHUSUS ' + office.targetGtk.toUpperCase(); 
                             }
                         } else {
                             btnMasuk.disabled = false; btnMasuk.onclick = function() { startAttendance('IN'); };
                             btnMasuk.classList.replace('text-gray-400', 'text-emerald-600');
-                            btnMasuk.innerHTML = '<i class="fas fa-camera"></i> PRESENSI UPACARA / APEL';
+                            btnMasuk.innerHTML = '<i class="fas fa-camera"></i> PRESENSI Upacara / Apel';
                             
                             if(btnIzin) { 
                                 btnIzin.disabled = false; btnIzin.onclick = function() { openPermitModal(); }; 
@@ -1039,31 +1092,37 @@
             });
         }
 
-        function saveSettings() {
+       function saveSettings() {
             var jdw = document.getElementById('adm-jadwal').value;
             var rd = document.getElementById('adm-rad').value;
             var st = document.getElementById('adm-start').value;
             var en = document.getElementById('adm-end').value;
             var gpsReq = document.getElementById('adm-gps').value;
+            var targetGtk = document.getElementById('adm-target').value;
             
             if (!rd || !st || !en || !jdw) return showToast("Isi semua form secara lengkap!");
 
             office.jadwal = jdw;
             office.rad = parseInt(rd); 
             office.gpsReq = gpsReq;
+            office.targetGtk = targetGtk;
             
             try { localStorage.setItem('presensi_office_v4', JSON.stringify(office)); } catch(e){}
 
             showToast("Menyimpan...");
             callGAS('updateOfficeSettings', { 
                 jadwal: jdw, 
-                radius: rd, timeStart: st, timeEnd: en, gpsReq: gpsReq 
+                radius: rd, 
+                timeStart: st, 
+                timeEnd: en, 
+                gpsReq: gpsReq,
+                targetGtk: targetGtk
             }, function(res) {
                 showToast(res.message); refreshData(); 
             });
         }
 
-        function loadPegawaiData() {
+      function loadPegawaiData() {
             document.getElementById('adminUserTable').innerHTML = '<tr><td colspan="4" class="py-8 text-center text-gray-400">Memuat data...</td></tr>';
             callGAS('getUsers', {}, function(data) {
                 document.getElementById('pegawaiCount').innerText = data.length;
@@ -1071,8 +1130,24 @@
                 for(var u=0; u<data.length; u++){
                     var userRow = data[u];
                     var roleBadge = userRow[3] === 'admin' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
-                    var uId = String(userRow[0]).replace(/'/g, "\\'"); var uNama = String(userRow[1]).replace(/'/g, "\\'"); var uPhone = String(userRow[2] || '').replace(/'/g, "\\'"); var uRole = String(userRow[3] || '').replace(/'/g, "\\'"); var uPass = String(userRow[4] || '').replace(/'/g, "\\'");
-                    uHtml += '<tr class="'+(u % 2 === 0 ? 'bg-white' : 'bg-gray-50')+' border-b border-gray-100"><td class="py-3 px-3 font-bold text-gray-900">' + userRow[1] + '</td><td class="py-3 px-3 text-gray-600">' + userRow[2] + '</td><td class="py-3 px-3 text-center"><span class="px-2 py-1 rounded-lg text-[9px] font-black uppercase ' + roleBadge + '">' + userRow[3] + '</span></td><td class="py-3 px-3 text-center"><div class="flex gap-1 justify-center"><button onclick="openUserModal(\'' + uId + '\',\'' + uNama + '\',\'' + uPhone + '\',\'' + uRole + '\',\'' + uPass + '\')" class="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-lg"><i class="fas fa-edit text-[10px]"></i></button><button onclick="deleteUserUI(\'' + uId + '\')" class="w-7 h-7 bg-red-50 text-red-600 rounded-lg"><i class="fas fa-trash text-[10px]"></i></button></div></td></tr>';
+                    var statusKepeg = userRow[5] || '-';
+                    var statusBadge = statusKepeg.toUpperCase() === 'ASN' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
+                    
+                    var uId = String(userRow[0]).replace(/'/g, "\\'");
+                    var uNama = String(userRow[1]).replace(/'/g, "\\'");
+                    var uPhone = String(userRow[2] || '').replace(/'/g, "\\'");
+                    var uRole = String(userRow[3] || '').replace(/'/g, "\\'");
+                    var uPass = String(userRow[4] || '').replace(/'/g, "\\'");
+                    var uSts = String(userRow[5] || 'ASN').replace(/'/g, "\\'");
+
+                    uHtml += '<tr class="'+(u % 2 === 0 ? 'bg-white' : 'bg-gray-50')+' border-b border-gray-100">' +
+                             '<td class="py-3 px-3 font-bold text-gray-900">' + userRow[1] + '<br><span class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase ' + statusBadge + '">' + statusKepeg + '</span></td>' +
+                             '<td class="py-3 px-3 text-gray-600">' + userRow[2] + '</td>' +
+                             '<td class="py-3 px-3 text-center"><span class="px-2 py-1 rounded-lg text-[9px] font-black uppercase ' + roleBadge + '">' + userRow[3] + '</span></td>' +
+                             '<td class="py-3 px-3 text-center"><div class="flex gap-1 justify-center">' +
+                             '<button onclick="openUserModal(\'' + uId + '\',\'' + uNama + '\',\'' + uPhone + '\',\'' + uRole + '\',\'' + uPass + '\',\'' + uSts + '\')" class="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-lg"><i class="fas fa-edit text-[10px]"></i></button>' +
+                             '<button onclick="deleteUserUI(\'' + uId + '\')" class="w-7 h-7 bg-red-50 text-red-600 rounded-lg"><i class="fas fa-trash text-[10px]"></i></button>' +
+                             '</div></td></tr>';
                 }
                 document.getElementById('adminUserTable').innerHTML = uHtml;
             });
@@ -1184,16 +1259,28 @@
             input.click();
         }
 
-        function openUserModal(id, nama, phone, role, pass) {
-            id = id || ''; nama = nama || ''; phone = phone || ''; role = role || 'GTK'; pass = pass || '';
-            document.getElementById('editId').value = id; document.getElementById('uNama').value = nama; document.getElementById('uPhone').value = phone; document.getElementById('uRole').value = role; document.getElementById('uPass').value = pass;
+       function openUserModal(id, nama, phone, role, pass, status) {
+            id = id || ''; nama = nama || ''; phone = phone || ''; role = role || 'GTK'; pass = pass || ''; status = status || 'ASN';
+            document.getElementById('editId').value = id;
+            document.getElementById('uNama').value = nama;
+            document.getElementById('uPhone').value = phone;
+            document.getElementById('uRole').value = role;
+            document.getElementById('uPass').value = pass;
+            document.getElementById('uStatus').value = status;
             document.getElementById('userModal').classList.replace('hidden', 'flex');
         }
 
         function closeUserModal() { document.getElementById('userModal').classList.replace('flex', 'hidden'); }
 
-        function submitUser() {
-            var data = { id: document.getElementById('editId').value, nama: document.getElementById('uNama').value, phone: document.getElementById('uPhone').value, role: document.getElementById('uRole').value, password: document.getElementById('uPass').value };
+       function submitUser() {
+            var data = { 
+                id: document.getElementById('editId').value, 
+                nama: document.getElementById('uNama').value, 
+                phone: document.getElementById('uPhone').value, 
+                role: document.getElementById('uRole').value, 
+                password: document.getElementById('uPass').value,
+                status: document.getElementById('uStatus').value
+            };
             showToast("Menyimpan..."); 
             var func = data.id ? 'editUser' : 'addUser';
             callGAS(func, data, function(res) { showToast(res.message); closeUserModal(); loadPegawaiData(); });
